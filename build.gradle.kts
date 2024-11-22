@@ -10,6 +10,9 @@ repositories {
 }
 
 dependencies {
+    //graphviz and its dependencies
+    implementation("guru.nidi:graphviz-kotlin:0.18.1")
+    implementation("guru.nidi:graphviz-java-all-j2v8:0.18.1")
     testImplementation(kotlin("test"))
 }
 
