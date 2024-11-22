@@ -6,6 +6,6 @@ class ExactMatchStrategy(private val expected: Any): IStrategy {
     }
 
     override fun toString(): String {
-        return "ExactMatch: $expected"
+        return "$expected"
     }
 }

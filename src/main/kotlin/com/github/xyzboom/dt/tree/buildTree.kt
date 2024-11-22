@@ -10,7 +10,7 @@ import com.github.xyzboom.dt.strategy.ExactMatchStrategy
 import kotlin.math.log2
 
 fun buildTree(dataset: DataSet): DecisionTree {
-    return DecisionTree(buildNode(dataset.dataList, dataset.propertyNames, "ID3"))
+    return DecisionTree(buildNode(dataset.dataList, dataset.dataList, dataset.propertyNames, "ID3"))
 }
 
 private val algorithmMap: Map<String, (dataList: List<Data>) -> Int> = buildMap {
@@ -19,35 +19,45 @@ private val algorithmMap: Map<String, (dataList: List<Data>) -> Int> = buildMap 
 
 private fun buildNode(
     dataList: List<Data>,
+    splitDataList: List<Data>,
     propertyNames: List<String>,
     algorithm: String,
     parent: DTNonLeafNode? = null
 ): DTNode {
     // 样本属于同一类别C
-    if (dataList.map { it.y }.toSet().size == 1) {
-        return DTLeafNode(dataList.first().y, parent)
+    if (splitDataList.map { it.y }.toSet().size == 1) {
+        return DTLeafNode(splitDataList.first().y, parent)
     }
     // 属性集为空 或者 数据集中的样本在属性集上取值相同
-    if (propertyNames.isEmpty()/* || dataList.*/) {
-        val group = dataList.groupBy { it.y }.mapValues { it.value.size }
+    if (propertyNames.isEmpty() || splitDataList.map { it.x }.toSet().size == 1) {
+        val group = splitDataList.groupBy { it.y }.mapValues { it.value.size }
         val maxY = group.maxBy { it.value }.key
         return DTLeafNode(maxY, parent)
     }
     // 选择最优划分属性
     val chooseAlgorithm = algorithmMap[algorithm]
         ?: throw NoSuchElementException("No algorithm found for algorithm $algorithm")
-    val chooseIndex = chooseAlgorithm(dataList)
-    val groups = dataList.groupBy { it.x[chooseIndex] }
+    val chooseIndex = chooseAlgorithm(splitDataList)
+    val groups = splitDataList.groupBy { it.x[chooseIndex] }
     val result = DTNonLeafNode(propertyNames[chooseIndex], parent = parent)
-    for ((_, group) in groups.entries) {
-        //   ^^^^^ Dv <- D中在a*中取值为av的样本子集
-        val value = group.first().x[chooseIndex]
-        val strategy = ExactMatchStrategy(value)
+    val availableProperties = dataList.map { it.x[chooseIndex] }.toSet()
+    for (property in availableProperties) {
+        val group = groups[property]
+        //  ^^^^^ Dv <- D中在a*中取值为av的样本子集
+        val strategy = ExactMatchStrategy(property)
         result.strategies.add(strategy)
+        if (group == null) {
+            val group1 = splitDataList.groupBy { it.y }.mapValues { it.value.size }
+            val maxY = group1.maxBy { it.value }.key
+            val child = DTLeafNode(maxY, result)
+            result.children.add(child)
+            continue
+        }
         val child = buildNode(
-            group.map { Data(it.x.dropAt(chooseIndex), it.y) },
+            dataList.map { Data(it.x.dropAt(chooseIndex), it.y, it.id) },
+            group.map { Data(it.x.dropAt(chooseIndex), it.y, it.id) },
             propertyNames.dropAt(chooseIndex),
-            algorithm, parent
+            algorithm, result
         )
         result.children.add(child)
     }

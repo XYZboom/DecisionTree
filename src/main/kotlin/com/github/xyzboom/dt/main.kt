@@ -13,11 +13,11 @@ fun main() {
             ).bufferedReader().use { it.readLines() }
     val propertyNames = rawLines[0].split(",").drop(1).dropLast(1)
     val dataList = mutableListOf<Data>()
-    for (rawLine in rawLines.drop(1)) {
+    for ((index, rawLine) in rawLines.drop(1).withIndex()) {
         val rawProperties = rawLine.split(",").drop(1)
         val y = rawProperties.last()
         val properties = rawProperties.dropLast(1)
-        dataList.add(Data(properties, y))
+        dataList.add(Data(properties, y, index + 1))
     }
     println(dataList)
     val tree = buildTree(DataSet(dataList, propertyNames))
